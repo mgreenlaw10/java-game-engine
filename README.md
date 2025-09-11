@@ -9,23 +9,40 @@ java -cp bin src.Main
 --------------------------------------------------------------------------------------------------------------------------
 
 Keybindings and other input functionality in the project are as follows:
+
+
 In EDITOR:
 
+
 Left click -> Select/use current tool on map
+
 Right click -> Drag map
+
 Scroll wheel -> Resize map
+
 1 -> Draw tool
+
 2 -> Erase tool
+
 3 -> Select tool
+
 Shift+1 -> Select layer 0
+
 Shift+2 -> Select layer 1
+
 Shift+3 -> Select layer 2
+
 Shift+4 -> Select layer 3
+
 Ctrl+Z -> Undo map change
+
 Ctrl+Y -> Redo map change
+
 Ctrl+S -> Save current map (must have been saved with a name previously)
 
-IN GAME:
+
+In GAME:
+
 
 WASD -> Player movement
 Space -> Attack
