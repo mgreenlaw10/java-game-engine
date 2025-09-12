@@ -117,6 +117,7 @@ public class TileSetRenderer extends Renderer implements MouseListener, MouseMot
 	}
 
 	public void mousePressed(MouseEvent e) {
+		requestFocusInWindow();
 		updateSelectedTile(e);
 	}
 

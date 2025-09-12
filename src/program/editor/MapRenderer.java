@@ -231,6 +231,8 @@ public class MapRenderer extends Renderer implements MouseListener, MouseMotionL
 	@Override
 	public void mousePressed(MouseEvent e) {
 
+		requestFocusInWindow();
+
 		if (SwingUtilities.isLeftMouseButton(e)) {
 			switch (editor.getSelectedTool()) {
 				case PENCIL ->  {
