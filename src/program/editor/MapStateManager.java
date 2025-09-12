@@ -17,10 +17,13 @@ public class MapStateManager implements MapDataListener {
 	MapRenderer renderer;
 
 	protected StateCache stateCache;
+	public StateCache getStateCache() {
+		return stateCache;
+	}
 	final int CACHESIZE = 16;
 
 	// acts like stack
-	private class StateCache {
+	public class StateCache {
 		public Map[] cache;
 		public int top;
 		public int cur;
@@ -99,7 +102,7 @@ public class MapStateManager implements MapDataListener {
 	}
 
 	public Map getCurrentMapState() {
-		return stateCache.cache[stateCache.cur];
+		return stateCache.cache[stateCache.cur].clone();
 	}
 
 	// KEYBOARD INPUT

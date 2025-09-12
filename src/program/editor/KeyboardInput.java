@@ -13,6 +13,7 @@ import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import src.program.editor.MapStateManager.StateCache;
 
 import java.io.IOException;
 
@@ -164,7 +165,7 @@ public class KeyboardInput {
 		*/
 		Action debug = new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-					System.out.println(editor.getActiveMap());
+					System.out.println(editor.centerPanel.getMapRenderer().getStateManager().getStateCache().cur);
 			}
 		};
 		inputMap.put(KB_DEBUG, "debug");

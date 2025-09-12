@@ -28,6 +28,9 @@ public class MapRenderer extends Renderer implements MouseListener, MouseMotionL
 	Editor editor;
 	
 	protected MapStateManager mapStateManager;
+	public MapStateManager getStateManager() {
+		return mapStateManager;
+	}
 	protected LayerManagementPanel layerManagementPanel;
 	
 	Vec2d cameraOffset = new Vec2d();
