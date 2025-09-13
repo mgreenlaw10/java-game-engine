@@ -45,7 +45,7 @@ public class Renderer extends JPanel {
                           y + getGraphics().getFontMetrics().getAscent() - getGraphics().getFontMetrics().getHeight() / 2 );
     }
 
-    public void drawStringCentered(String text, int x, int y, Graphics2D g2) {
+    public static void drawStringCentered(String text, int x, int y, Graphics2D g2) {
 
         g2.drawString( text,
                        x - g2.getFontMetrics().stringWidth(text) / 2, 

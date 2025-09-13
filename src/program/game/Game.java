@@ -132,13 +132,19 @@ public class Game extends Program implements KeyListener {
 
 	@Override
 	public void draw(Graphics2D g2) {
-
 		camera.drawVisibleMapArea(g2);
 		camera.drawVisibleEntities2(g2);
 		if (drawHitboxes) {
 			camera.drawWalls(g2);
 			camera.drawEntityPositions(g2);
 		}
+		if (drawRays) {
+			camera.drawRays(g2);
+		}
+		if (drawEntityStates) {
+			camera.drawEntityStates(g2);
+		}
+
 	}
 
 	private void createMenuButton() {
@@ -170,8 +176,35 @@ public class Game extends Program implements KeyListener {
     }
 
     boolean drawHitboxes = false;
+    boolean drawRays = false;
+    boolean drawEntityStates = false;
+
+    public boolean getDrawHitboxes() {
+    	return drawHitboxes;
+    }
+    public void setDrawHitboxes(boolean val) { 
+    	drawHitboxes = val;
+    }
     public void toggleDrawHitboxes() {
     	drawHitboxes = !drawHitboxes;
+    }
+    public boolean getDrawRays() {
+    	return drawRays;
+    }
+    public void setDrawRays(boolean val) {
+    	drawRays = val;
+    }
+    public void toggleDrawRays() {
+    	drawRays = !drawRays;
+    }
+    public boolean getDrawEntityStates() {
+    	return drawEntityStates;
+    }
+    public void setDrawEntityStates(boolean val) {
+    	drawEntityStates = val;
+    }
+    public void toggleDrawEntityStates() { 
+    	drawEntityStates = !drawEntityStates;
     }
 
     @Override

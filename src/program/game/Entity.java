@@ -89,4 +89,9 @@ public abstract class Entity extends Box2d {
 
 	public abstract void update(double delta);
 	public abstract void whileDying();
+
+	// should be overridden to return the current state of any entity as a string
+	public String getStateString() {
+		return "DEFAULT";
+	}
 }

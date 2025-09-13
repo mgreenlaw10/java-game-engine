@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import src.math.*;
 import src.obj.*;
 import java.awt.BasicStroke;
+import src.math.RayCaster.Ray2d;
+import src.Renderer;
 
 public class Camera extends Box2d {
 
@@ -102,6 +104,10 @@ public class Camera extends Box2d {
 				int drawY = (int)(e.y - y - frameCenterY + entityCenterY);
 				
 				g2.drawImage (animFrame, drawX, drawY, drawW, drawH, null);
+
+				if (gameHandle.getDrawEntityStates()) {
+					Renderer.drawStringCentered("<" + e.getStateString() + ">", drawX + drawH / 2, drawY + drawH + 8, g2);
+				}
 			}
 		}
 	}
@@ -159,6 +165,40 @@ public class Camera extends Box2d {
 			}
 		}
 		g2.setStroke(new BasicStroke(1));
+	}
+
+	public void drawRays(Graphics2D g2) {
+		if (RayCaster.getDrawQueue().isEmpty())
+            return;
+        for (Ray2d ray : RayCaster.getDrawQueue()) {
+            double x1 = ray.origin.x - this.x;
+            double y1 = ray.origin.y - this.y;
+            
+            double x2 = x1 + ray.dir.x;
+            double y2 = y1 + ray.dir.y;
+            /**
+             * Do not draw a ray if it is offscreen
+             */
+            if (x1 < 0 && x2 < 0 ||
+                x1 > this.width && x2 > this.width ||
+                y1 < 0 && y2 < 0 ||
+                y1 > this.height && y2 > this.height)
+                    continue;
+            
+            g2.setColor(Color.RED);
+            g2.setStroke(new BasicStroke(3));
+           
+            g2.drawLine(    (int)(x1), 
+                            (int)(y1), 
+                            (int)(x1 + (int)ray.dir.x), 
+                            (int)(y1 + ray.dir.y)
+            );
+        }
+        RayCaster.clearDrawQueue();
+	}
+
+	public void drawEntityStates(Graphics2D g2) {
+
 	}
 
 	// return a box2d that is scaled by {scale} and oriented around the center of {box}
