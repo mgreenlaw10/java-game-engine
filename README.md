@@ -12,7 +12,7 @@ java -cp bin src.Main
 
 --------------------------------------------------------------------------------------------------------------------------
 
-Here is a link to a YouTube video where I go over the features and how to use my project: https://youtu.be/MrEA_W6x5ls
+Here is a link to a YouTube video where I go over the features and how to use my project: https://youtu.be/cjZKUefwS3Q
 
 --------------------------------------------------------------------------------------------------------------------------
 
