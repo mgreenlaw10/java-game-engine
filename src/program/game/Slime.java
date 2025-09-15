@@ -13,11 +13,15 @@ public class Slime extends Entity {
 	TileSet attackAnimation;
 	SlimeStateManager stateManager;
 
+	double attackDamage = 1;
+
 	public Slime(Vec2d position, Vec2d size, Game gameHandle) {
 		super(position, size, gameHandle);
 		stateManager = new SlimeStateManager(this, gameHandle);
 		speed = 100;
 		mass = 50;
+		health = 3;
+		showHealthBar = true;
 
 		loadResources();
 		animationPlayer.playAnimation("idle", true);
@@ -51,13 +55,14 @@ public class Slime extends Entity {
 
 	@Override
 	public void update(double delta) {
+		super.update(delta);
 		stateManager.update(delta); 
 	}
 
-	AnimationFuture deathAnimState;
 	boolean firstPass = true;
+	AnimationFuture deathAnimState;
 	@Override
-	public void whileDying() {
+	protected void whileDying() {
 		if (firstPass) {
 			animationPlayer.unlock();
 			deathAnimState = animationPlayer.playOnceUninterrupted("death");
@@ -65,6 +70,14 @@ public class Slime extends Entity {
 		}
 		if (deathAnimState != null && deathAnimState.isFinished()) { 
 			lifeState = LifeState.DEAD;
+		}
+	}
+
+	@Override
+	protected void onDamaged(double damage) {
+		health -= damage;
+		if (health <= 0) {
+			kill();
 		}
 	}
 
@@ -84,5 +97,9 @@ public class Slime extends Entity {
 			return "ATTACKING";
 		}
 		return "?";
+	}
+
+	public double getAttackDamage() {
+		return attackDamage;
 	}
 }

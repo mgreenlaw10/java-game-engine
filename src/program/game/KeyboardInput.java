@@ -81,12 +81,12 @@ public class KeyboardInput {
 		// PLAYER ATTACK
 		Action startAttack = new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				gameHandle.getPlayer().setAttacking(true);
+				gameHandle.getPlayer().startAttacking();
 			}
 		};
 		Action endAttack = new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
-				gameHandle.getPlayer().setAttacking(false);
+				gameHandle.getPlayer().stopAttacking();
 			}
 		};
 		inputMap.put(KB_STARTATTACK, "startAttack");

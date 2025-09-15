@@ -88,7 +88,7 @@ public class SlimeStateManager implements KeyFrameListener {
 	@Override
 	public void keyFrameReached(KeyFrameEvent keyFrame) {
 		if (target.getAnimationPlayer().isPlaying("attack") && keyFrame.frame() == target.KEYFRAME_TRIGGER_ATTACK) {
-			gameHandle.getPlayer().onDamaged(1);
+			gameHandle.getPlayer().damage(target.getAttackDamage());
 		}
 	}
 }

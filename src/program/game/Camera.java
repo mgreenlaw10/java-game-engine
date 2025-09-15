@@ -73,21 +73,6 @@ public class Camera extends Box2d {
 	public void drawVisibleEntities(Graphics2D g2) {
 		for (Entity e : ySortEntities()) {
 			if (canSee(e)) {
-				g2.drawImage ( 
-					e.getAnimationPlayer().getFrame(), 
-					(int)(e.x - x), 
-					(int)(e.y - y), 
-					(int)e.width, 
-					(int)e.height, 
-					null
-				);
-			}
-		}
-	}
-
-	public void drawVisibleEntities2(Graphics2D g2) {
-		for (Entity e : ySortEntities()) {
-			if (canSee(e)) {
 				BufferedImage animFrame = e.getAnimationPlayer().getFrame();
 
 				double scaleFactor = gameHandle.tileSize / 16; // the number of tiles that this frame takes up
@@ -104,7 +89,11 @@ public class Camera extends Box2d {
 				int drawY = (int)(e.y - y - frameCenterY + entityCenterY);
 				
 				g2.drawImage (animFrame, drawX, drawY, drawW, drawH, null);
-
+				if (e.getShowHealthBar()) { 
+					int healthBarCenterX = drawX + drawW / 2;
+					int healthBarCenterY = drawY - 32; // health bar goes above entity
+					drawHealthBar(e, healthBarCenterX, healthBarCenterY, g2);
+				}
 				if (gameHandle.getDrawEntityStates()) {
 					Renderer.drawStringCentered("<" + e.getStateString() + ">", drawX + drawH / 2, drawY + drawH + 8, g2);
 				}
@@ -131,6 +120,26 @@ public class Camera extends Box2d {
 				result.add(e);		
 		}
 		return result;
+	}
+
+	Texture heartImage = new Texture("res/image/heart.png");
+	void drawHealthBar(Entity e, int centerX, int centerY, Graphics2D g2) { 
+
+		int margin = 4;
+		int heartSize = 24;
+		int health = (int)e.getHealth();
+
+		int width = health * heartSize + (health - 1 * margin);
+		int height = heartSize;
+
+		int drawX = centerX - width / 2;
+		int drawY = centerY - height / 2;
+
+		int x = drawX;
+		while ((x - drawX) < width) {
+			g2.drawImage(heartImage.getImage(), x, drawY, heartSize, heartSize, null);
+			x += heartSize + margin;
+		}
 	}
 
 	public void drawEntityPositions(Graphics2D g2) {

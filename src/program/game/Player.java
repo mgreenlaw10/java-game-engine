@@ -11,6 +11,13 @@ import java.util.ArrayList;
 
 import src.program.game.ui.KeyFrameListener;
 import src.program.game.AnimationPlayer.KeyFrameEvent;
+import src.program.game.AnimationPlayer.AnimationFuture;
+
+import src.program.game.event.GameEvent;
+import src.program.game.event.FutureEvents;
+import src.program.game.event.FutureEventHandle;
+import src.program.game.event.LockedEventHandle;
+import src.program.game.event.RecurringEventHandle;
 
 import src.obj.Direction;
 
@@ -20,20 +27,23 @@ public class Player extends Entity implements KeyFrameListener {
 	TileSet idleAnimation;
 	TileSet attackAnimation;
 	TileSet hurtAnimation;
+	TileSet deathAnimation;
 	final int KEYFRAME_TRIGGER_ATTACK = 2;
 	PlayerInputController input;
-	// attacking
-	Box2d attackBounds;
+	double attackDamage;
 
 	public Player(Vec2d spawnPoint, Vec2d size, Game gameHandle) {
 		super(spawnPoint, size, gameHandle);
 		input = new PlayerInputController();
 		speed = 200;
 		mass = 100;
+		health = 5;
+		attackDamage = 1;
 		loadResources();
 		animationPlayer.addKeyFrameListener(this);
 		animationPlayer.playAnimation("idle_right", true);
 		attackBounds = null;
+		showHealthBar = true;
 	}
 
 	void loadResources() {
@@ -41,6 +51,7 @@ public class Player extends Entity implements KeyFrameListener {
 		runAnimation = new TileSet("res/tileset/run.png", 16, 16, 32, 32, 64, 64);
 		attackAnimation = new TileSet("res/tileset/sword.png", 48, 48, 16, 16, 32, 32);
 		hurtAnimation = new TileSet("res/tileset/hurt.png", 16, 16, 32, 32, 64, 64);
+		deathAnimation = new TileSet("res/tileset/death.png", 16, 16, 32, 32, 64, 64);
 
 		animationPlayer.addAnimation("walk_right", runAnimation, animationPlayer.rowFrames(0, runAnimation.cols), 200, null, false);
 		animationPlayer.addAnimation("walk_left", runAnimation, animationPlayer.rowFrames(0, runAnimation.cols), 200, null, true);
@@ -64,15 +75,22 @@ public class Player extends Entity implements KeyFrameListener {
 		animationPlayer.addAnimation("hurt_down", hurtAnimation, animationPlayer.rowFrames(1, 4), 80, null, false);
 		animationPlayer.addAnimation("hurt_up", hurtAnimation, animationPlayer.rowFrames(2, 4), 80, null, false);
 
+		animationPlayer.addAnimation("death_right", deathAnimation, animationPlayer.rowFrames(0, 4), 80, null, false);
+		animationPlayer.addAnimation("death_left", deathAnimation, animationPlayer.rowFrames(0, 4), 80, null, true);
+		animationPlayer.addAnimation("death_down", deathAnimation, animationPlayer.rowFrames(1, 4), 80, null, false);
+		animationPlayer.addAnimation("death_up", deathAnimation, animationPlayer.rowFrames(2, 4), 80, null, false);
+
 		String[] ATTACK_ANIMATIONS = new String[] {"attack_right", "attack_left", "attack_down", "attack_up"};
 		String[] HURT_ANIMATIONS = new String[] {"hurt_right", "hurt_left", "hurt_down", "hurt_up"};
-		String[] RIGHT_ANIMATIONS = new String[] {"walk_right", "idle_right", "attack_right", "hurt_right"};
-		String[] LEFT_ANIMATIONS = new String[] {"walk_left", "idle_left", "attack_left", "hurt_left"};
-		String[] DOWN_ANIMATIONS = new String[] {"walk_down", "idle_down", "attack_down", "hurt_down"};
-		String[] UP_ANIMATIONS = new String[] {"walk_up", "idle_up", "attack_up", "hurt_up"};
+		String[] DEATH_ANIMATIONS = new String[] {"death_right", "death_left", "death_down", "death_up"};
+		String[] RIGHT_ANIMATIONS = new String[] {"walk_right", "idle_right", "attack_right", "hurt_right", "death_right"};
+		String[] LEFT_ANIMATIONS = new String[] {"walk_left", "idle_left", "attack_left", "hurt_left", "death_left"};
+		String[] DOWN_ANIMATIONS = new String[] {"walk_down", "idle_down", "attack_down", "hurt_down", "death_down"};
+		String[] UP_ANIMATIONS = new String[] {"walk_up", "idle_up", "attack_up", "hurt_up", "death_up"};
 
 		animationPlayer.addAnimationClass("attack", ATTACK_ANIMATIONS);
 		animationPlayer.addAnimationClass("hurt", HURT_ANIMATIONS);
+		animationPlayer.addAnimationClass("death", DEATH_ANIMATIONS);
 		animationPlayer.addAnimationClass("right", RIGHT_ANIMATIONS);
 		animationPlayer.addAnimationClass("left", LEFT_ANIMATIONS);
 		animationPlayer.addAnimationClass("down", DOWN_ANIMATIONS);
@@ -80,45 +98,73 @@ public class Player extends Entity implements KeyFrameListener {
 	}
 
 	public void update(double delta) {
+		super.update(delta);
 		handleTeleporterCollision();
 		handleMovementInput();
 		animationPlayer.findKeyFrameUpdates();
-		if (attacking) {
-			attack();
-		}
-		if (triggerAttack && attackBounds != null) {
-			// clone, don't get original list
-			var entitiesHit = new ArrayList<>(gameHandle.getLevelManager().getCurrentLevel().getEntitiesInside(attackBounds));
-			for (Entity e : entitiesHit) {
-				if (e != this) e.kill();
-			}
-			attackBounds = null;
-			triggerAttack = false;
+		if (health < 5)
+			tryRegenHealth();
+	}
+	/**
+	 * Health regeneration system.
+	 * 
+	 * 
+	 * */
+	int regenRate = 1;
+	int regenAmount = 1;
+	FutureEventHandle regenEvent;
+	/**
+	 * Ensure that calls don't overlap.
+	 *
+	 * 
+	 * */
+	void tryRegenHealth() {
+		if (regenEvent == null || regenEvent.hasExecuted()) {
+			regenEvent = FutureEvents.doLater( () -> health += regenAmount, regenRate * 2000);
 		}
 	}
 
-	boolean teleported = false;
-	boolean tpCooldown = false;
+	/**
+	 * Player-Teleporter interaction.
+	 * 
+	 * 
+	 * */
+	LockedEventHandle teleportCooldown;
+	Vec2d lastUsedTeleporterPos;
+	/**
+	 * Call in update loop.
+	 * 
+	 * */
 	void handleTeleporterCollision() {
-		for (Teleporter tp : gameHandle.getLevelManager().getCurrentLevel().teleporters) {
-			Box2d tpBounds = new Box2d (
-				tp.mapCoords.x * gameHandle.getTileSize(),
-				tp.mapCoords.y * gameHandle.getTileSize(),
-				gameHandle.getTileSize(),
-				gameHandle.getTileSize()
-			);
-			if (this.intersects(tpBounds)) {
-				teleported = true;
-				if (!tpCooldown) {
+		for (var tp : gameHandle.getLevelManager().getCurrentLevel().teleporters) {
+			/**
+			 * Calculate the in-game dimensions of each teleporter.
+			 * */
+			int x = tp.mapCoords.x * gameHandle.getTileSize();
+			int y = tp.mapCoords.y * gameHandle.getTileSize();
+			int w = gameHandle.getTileSize();
+			int h = gameHandle.getTileSize();
+			Box2d teleporterBounds = new Box2d(x, y, w, h);
+			if (this.intersects(teleporterBounds)) {
+				/**
+				 * After teleporting, lock for 2 seconds.
+				 * */
+				if (teleportCooldown == null || !teleportCooldown.isLocked()) {
+					teleportCooldown = FutureEvents.lockEvent(this::handleTeleporterCollision, 2000);
 					tp.onPlayerCollision();
-					tpCooldown = true;
+					lastUsedTeleporterPos = teleporterBounds.center();
 				}
 			}
+			/**
+			 * If the player is at least two blocks away (middle-to-middle) 
+			 * from the last teleporter it touched, it is safe to unlock.
+			 * */
+			boolean playerExceededSafeRange = lastUsedTeleporterPos == null || this.center().distanceFrom(lastUsedTeleporterPos) > gameHandle.getTileSize() * 2;
+			if (teleportCooldown != null && playerExceededSafeRange) { 
+				teleportCooldown.unlockImmediately();
+				teleportCooldown = null;
+			}
 		}
-		if (!teleported) {
-			tpCooldown = false;
-		}
-		teleported = false;
 	}
 
 	void handleMovementInput() {
@@ -162,19 +208,15 @@ public class Player extends Entity implements KeyFrameListener {
 			}	
 		}
 	}
-
-	boolean attacking = false;
-	boolean lockAttack = false;
-	// when the actual damage is done
-	boolean triggerAttack = false;
+	/**
+	 * Attack System.
+	 * 
+	 * 
+	 * */
+	Box2d attackBounds;
+	RecurringEventHandle attackEvent;
 	public void attack() {
 		animationPlayer.unlock();
-
-		if (lockAttack)
-			return;
-		lockAttack = true;
-
-		// create a hurtbox in front of the player's direction
 		attackBounds = ((Box2d)(this)).clone();
 		if (input.moving() ) {
 			if (animationPlayer.isPlayingClass("up")) {
@@ -210,11 +252,77 @@ public class Player extends Entity implements KeyFrameListener {
 				}
 			}
 		}
-		lockAttack = false;
+	}
+	/**
+	 * Called by KeyboardInput. Enter an attacking state.
+	 * 
+	 * 
+	 * */
+	public void startAttacking() {
+		if (attackEvent == null) {
+			attackEvent = FutureEvents.startRecurringEvent(this::attack, 0, 1000);
+		}
+	}
+	/**
+	 * Called by KeyboardInput. Exit an attacking state.
+	 * 
+	 * 
+	 * */
+	public void stopAttacking() {
+		if (attackEvent != null) {
+			attackEvent.stop();
+			attackEvent = null;
+		}
+	}
+	/**
+	 * Currently, the player only has one keyframe in his attack animation.
+	 * 
+	 * */
+	@Override
+	public void keyFrameReached(KeyFrameEvent keyFrame) {
+		if (animationPlayer.isOfClass("attack", keyFrame.animation()) && 
+			keyFrame.frame() == KEYFRAME_TRIGGER_ATTACK && 
+			attackBounds != null
+		) {
+			/**
+			 * Important to clone the list.
+			 * */
+			var entitiesHit = new ArrayList<>(gameHandle.getLevelManager().getCurrentLevel().getEntitiesInside(attackBounds));
+			for (Entity e : entitiesHit) {
+				if (e != this) e.damage(attackDamage);
+			}
+			attackBounds = null;
+		}
 	}
 
-	// when the player is damaged by an entity
-	public void onDamaged(int damage) {
+    public PlayerInputController getPlayerInputController() {
+		return input;
+	}
+
+	boolean firstPass = true;
+	AnimationFuture deathAnimState;
+	@Override
+	protected void whileDying() {
+		if (firstPass) {
+			animationPlayer.unlock();
+			if (animationPlayer.isPlayingClass("up")) {
+				deathAnimState = animationPlayer.playOnceUninterrupted("death_up");
+			} else if (animationPlayer.isPlayingClass("down")) {
+				deathAnimState = animationPlayer.playOnceUninterrupted("death_down");
+			} else if (animationPlayer.isPlayingClass("left")) {
+				deathAnimState = animationPlayer.playOnceUninterrupted("death_left");
+			} else if (animationPlayer.isPlayingClass("right")) {
+				deathAnimState = animationPlayer.playOnceUninterrupted("death_right");
+			}
+			firstPass = false;
+		}
+		if (deathAnimState != null && deathAnimState.isFinished()) {
+			lifeState = LifeState.DEAD;
+		}
+	}
+
+	@Override
+	protected void onDamaged(double damage) {
 		if (animationPlayer.isPlayingClass("up")) {
 			animationPlayer.playOnceUninterrupted("hurt_up");
 		} else if (animationPlayer.isPlayingClass("down")) {
@@ -224,19 +332,10 @@ public class Player extends Entity implements KeyFrameListener {
 		} else if (animationPlayer.isPlayingClass("right")) {
 			animationPlayer.playOnceUninterrupted("hurt_right");
 		}
-	}
-
-	public void setAttacking(boolean val) {
-		attacking = val;
-	}
-
-    public PlayerInputController getPlayerInputController() {
-		return input;
-	}
-
-	@Override
-	public void whileDying() {
-
+		health -= damage;
+		if (health <= 0) {
+			kill();
+		}
 	}
 
 	@Override
@@ -254,11 +353,9 @@ public class Player extends Entity implements KeyFrameListener {
 		}
 	}
 
-	@Override
-	public void keyFrameReached(KeyFrameEvent keyFrame) {
-		// if any attack animation is playing and the keyframe has been reached
-		if (animationPlayer.isOfClass("attack", keyFrame.animation()) && keyFrame.frame() == KEYFRAME_TRIGGER_ATTACK) {
-			triggerAttack = true;
-		}
+	
+
+	public double getAttackDamage() {
+		return attackDamage;
 	}
 }

@@ -20,13 +20,12 @@ import java.io.*;
 
 import java.lang.ClassNotFoundException;
 
-import java.awt.event.KeyListener;
-import java.awt.event.KeyEvent;
-
 import java.util.ArrayList;
 import java.lang.reflect.InvocationTargetException;
 
-public class Game extends Program implements KeyListener {
+import src.program.game.event.FutureEvents;
+
+public class Game extends Program {
 
 	JButton exitToMenuButton;
 
@@ -82,7 +81,6 @@ public class Game extends Program implements KeyListener {
 
         renderer.requestFocusInWindow();
         renderer.addKeyListener(player.getPlayerInputController());
-        renderer.addKeyListener(this);
 
         spawnPlayer();
 	}
@@ -106,18 +104,18 @@ public class Game extends Program implements KeyListener {
 		// clone in order to guarantee that changes to the entity list don't apply in the middle of an update loop
 		ArrayList<Entity> activeEntities = (ArrayList<Entity>)levelManager.getCurrentLevel().entities.clone();
 		for (Entity e : activeEntities) {
-			if (e.getLifeState() == LifeState.ALIVE) {
-		 		e.update(delta);
-			}
-			else if (e.getLifeState() == LifeState.DYING) {
-				e.whileDying();
-			}
+			e.update(delta);
 		}
 		// no need to clone because the contents of this list shouldn't ever change
 		ArrayList<Box2d> activeWalls = levelManager.getCurrentLevel().walls;
 		Collision.doEntityPhysics(activeEntities, activeWalls, delta);
-		
 		removeDeadEntities();
+		/**
+		 * Check for any events that have passed their scheduled execution time.
+		 * 
+		 * 
+		 * */
+		FutureEvents.executeDueEvents();
 	}
 
 	// at the end of every update loop, remove all entities that died during this update
@@ -133,7 +131,7 @@ public class Game extends Program implements KeyListener {
 	@Override
 	public void draw(Graphics2D g2) {
 		camera.drawVisibleMapArea(g2);
-		camera.drawVisibleEntities2(g2);
+		camera.drawVisibleEntities(g2);
 		if (drawHitboxes) {
 			camera.drawWalls(g2);
 			camera.drawEntityPositions(g2);
@@ -206,16 +204,5 @@ public class Game extends Program implements KeyListener {
     public void toggleDrawEntityStates() { 
     	drawEntityStates = !drawEntityStates;
     }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {}
-
-    @Override
-    public void keyTyped(KeyEvent e) {}
 }
 

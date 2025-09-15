@@ -187,8 +187,8 @@ public class RayCaster {
      * When you want to draw a Ray2d, send it to the queue.
      * Next frame, the camera will read the queue and
      * draw each ray, then clear the queue.
-     *
-     *
+     * 
+     *   
      * 
      * Queue a Ray2d to be drawn during a draw cycle.
      * 
